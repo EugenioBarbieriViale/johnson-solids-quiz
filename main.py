@@ -1,59 +1,118 @@
-from csv import writer
+import io
 from os import path
+
+import requests
+from bs4 import BeautifulSoup
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from random import randint, shuffle
-from PIL import Image
+from csv import writer
 
-import webscrape
+from random import randint, shuffle
+from time import sleep
+
+
+class Solids:
+    def __init__(self):
+        self.url = "https://en.wikipedia.org/wiki/List_of_Johnson_solids"
+
+        self.headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+
+        self.s = requests.Session()
+        self.r = self.s.get(self.url, headers=self.headers)
+
+        self.soup = BeautifulSoup(self.r.content, "html.parser")
+
+    def get_names(self):
+        all_td = self.soup.find_all("td")
+
+        names = []
+        for t in all_td:
+            a = t.a
+            if a is not None and "href" in a.attrs and "title" in a.attrs:
+                if a.text[0].isupper():
+                    names.append([a.text])
+
+        return names
+
+    def get_images(self):
+        all_img = self.soup.find_all("img", class_="mw-file-element")
+
+        images = []
+        for a in all_img:
+            if "commons" in a["src"]:
+                img_url = "https:" + a["src"]
+
+                img_url = img_url.replace("thumb/", "")
+                img_url = img_url.split("/120", 1)[0]
+
+                print(img_url)
+                response = requests.get(img_url, stream = True, headers=self.headers)
+                sleep(5)
+                
+                if response.status_code != 200:
+                    print(f"! Failed to download {img_url} (HTTP {response.status_code})")
+
+                img = plt.imread(io.BytesIO(response.content), format="PNG")
+
+                images.append([img])
+
+        return images
+
+    def get_image_urls(self):
+        all_img = self.soup.find_all("img", class_="mw-file-element")
+
+        img_urls = []
+        for a in all_img:
+            if "commons" in a["src"]:
+                img_url = "https:" + a["src"]
+
+                img_url = img_url.replace("thumb/", "")
+                img_url = img_url.split("/120", 1)[0]
+                print(img_url)
+
+                img_urls.append([img_url])
+
+        return img_urls
+
+    def open_image(self, img_url):
+        response = requests.get(img_url, stream = True, headers=self.headers)
+        
+        if response.status_code != 200:
+            print(f"! Failed to download {img_url} (HTTP {response.status_code})")
+
+        img = io.BytesIO(response.content)
+        img = plt.imread(img, format="PNG")
+        plt.imshow(img)
+        plt.show()
+
+    def save(self, file_path, array):
+        with open(file_path, mode="w", newline="") as file:
+            w = writer(file)
+            w.writerows(array)
 
 dirname = "data/"
 
 f1 = dirname + "names.csv"
-f2 = dirname + "images.csv"
+f2 = dirname + "image_urls.csv"
 
-w = webscrape.Solids()
+w = Solids()
 
 if not path.isfile(f1):
     names = w.get_names()
     w.save(f1, names)
     print("Names saved to file", f1)
 
-# if not path.isfile(f2):
-#     images = w.get_images()
-#     w.save(f2, images)
-#     print("Images saved to file", f2)
+if not path.isfile(f2):
+    im = w.get_image_urls()
+    w.save(f2, im)
+    print("URLs saved to file", f2)
     
 names = pd.read_csv(f1).values
-img_urls = w.get_image_urls()
-# images = pd.read_csv(f2).values
+img_urls = pd.read_csv(f2).values
 
-while True:
-    index = randint(0, 92)
 
-    # print(names[index][0])
-    img = w.open_image(img_urls[index])
+index = randint(0, 92)
 
-    # img = plt.imread(img, format="PNG")
-    img = Image.open(img)
-    plt.imshow(img)
-    plt.show()
-
-    options = [names[index-1][0], names[index][0], names[index+1][0]]
-    options.shuffle()
-
-    print("A)", options[0])
-    print("B)", options[1])
-    print("C)", options[2])
-
-    inp = str(input("Answer: "))
-    if inp == "A" and options[0] == names[index][0]:
-        print("Correct!")
-    elif inp == "B" and options[1] == names[index][0]:
-        print("Correct!")
-    elif inp == "C" and options[2] == names[index][0]:
-        print("Correct!")
-    else:
-        print("Wrong, the answer is", names[index][0])
-
-    print("-----------------------------------------")
+print(names[index][0])
+img = w.open_image(img_urls[index][0])
