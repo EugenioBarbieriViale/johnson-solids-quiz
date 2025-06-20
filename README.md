@@ -1,1 +1,1 @@
-# johnson-solids-quiz
+# johnson-solids
