@@ -2,7 +2,10 @@ import io
 from time import sleep
 
 import matplotlib.pyplot as plt
+from matplotlib import image as mpimg
+
 from csv import writer
+import cairosvg
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,12 +17,14 @@ class Solids:
 
         self.headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 
+    def call(self):
         self.s = requests.Session()
         self.r = self.s.get(self.url, headers=self.headers)
 
         self.soup = BeautifulSoup(self.r.content, "html.parser")
 
     def get_names(self):
+        self.call()
         all_td = self.soup.find_all("td")
 
         names = []
@@ -31,10 +36,14 @@ class Solids:
 
         return names
 
-    def get_images(self):
+    def download_images(self, _dir):
+        # Elongated_triangular_gyrobicupola.png
+
+        self.call()
         all_img = self.soup.find_all("img", class_="mw-file-element")
 
         images = []
+        i = 0
         for a in all_img:
             if "commons" in a["src"]:
                 img_url = "https:" + a["src"]
@@ -42,19 +51,31 @@ class Solids:
                 img_url = img_url.replace("thumb/", "")
                 img_url = img_url.split("/120", 1)[0]
 
+                name = img_url[52:]
+                name = name.replace(".svg", ".png")
+                # name = name.replace(".png", "")
+                # name = name + str(i) + ".png"
+
+                print(f"{i}:", name)
+                i += 1
+
                 response = requests.get(img_url, stream = True, headers=self.headers)
                 sleep(5)
                 
                 if response.status_code != 200:
                     print(f"! Failed to download {img_url} (HTTP {response.status_code})")
 
-                img = plt.imread(io.BytesIO(response.content), format="PNG")
+                if ".svg" in img_url:
+                    img_data = cairosvg.svg2png(response.content)
+                else:
+                    img_data = response.content
 
-                images.append([img])
-
-        return images
+                filename = _dir + name
+                with open(filename, 'wb') as file:
+                    file.write(img_data)
 
     def get_image_urls(self):
+        self.call()
         all_img = self.soup.find_all("img", class_="mw-file-element")
 
         img_urls = []
@@ -70,7 +91,18 @@ class Solids:
 
         return img_urls
 
-    def open_image(self, img_url):
+    def open_image_file(self, name, _dir):
+        if "bipyramid" in name:
+            name = name.replace("bipyramid", "dipyramid")
+
+        filename = _dir + name.replace(" ", "_") + ".png"
+
+        img = plt.imread(filename, format="PNG")
+        plt.title(name)
+        plt.imshow(img)
+        plt.show()
+
+    def open_image_request(self, img_url):
         response = requests.get(img_url, stream = True, headers=self.headers)
         
         if response.status_code != 200:
