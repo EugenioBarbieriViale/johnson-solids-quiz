@@ -11,7 +11,7 @@ import requests
 from bs4 import BeautifulSoup
 
 
-class Solids:
+class Webscrape:
     def __init__(self):
         self.url = "https://en.wikipedia.org/wiki/List_of_Johnson_solids"
 

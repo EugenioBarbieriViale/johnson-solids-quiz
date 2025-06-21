@@ -2,7 +2,7 @@ from os import path, mkdir
 import pandas as pd
 from random import randint
 
-import solids
+import webscrape
 
 dirname = "data/"
 
@@ -10,7 +10,7 @@ f1 = dirname + "names.csv"
 f2 = dirname + "image_urls.csv"
 imgs_dir = dirname + "images/" # remember to put / at the end
 
-w = solids.Solids()
+w = webscrape.Webscrape()
 
 if not path.isfile(f1):
     names = w.get_names()
