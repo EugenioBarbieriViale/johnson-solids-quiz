@@ -3,6 +3,7 @@ import pandas as pd
 from random import randint
 
 import webscrape
+import neural_network
 
 dirname = "data/"
 
@@ -28,6 +29,9 @@ if not path.isdir(imgs_dir):
     print("Images downloaded to directory:", imgs_dir)
     
 names = pd.read_csv(f1).values.flatten()
-index = randint(0, 91)
+# index = randint(0, 91)
 
-w.open_image_file(names[index], imgs_dir)
+# w.open_image_file(names[index], imgs_dir)
+
+nn = neural_network.JS_Classifier()
+nn.learn(epochs=10, filename="model.pth")
